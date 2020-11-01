@@ -53,17 +53,21 @@ def json_to_pandas_player(j_player: dict) -> pd.DataFrame:
     return player_row
 
 
-def process_fixture(fixture_id: int,
+def process_fixture(fixture_id: int = None,
+                    fixture_file: str = None,
                     stats_path: str = os.path.join(DATA_PATH,
-                                                          'player_stats')
+                                                   'player_stats')
                     ) -> pd.DataFrame:
     """
-    Given a fixture id, process players statistics data to a pandas DataFrame.
+    Given a fixture id or a path to a player statistics file, process statistics
+    data to a pandas DataFrame.
 
     Parameters
     ----------
     fixture_id: int
         ID of the fixture for which to retrieve stats
+    fixture_file: str
+        Path to a player statistics json file
     stats_path: str, default os.path.join(params.DATA_PATH, 'player_stats')
         Path where to search for / download statistics data
 
@@ -73,6 +77,9 @@ def process_fixture(fixture_id: int,
         Output DataFrame with processed data
     """
 
+    if fixture_id is None and fixture_file is None:
+        raise Exception('Both fixture ID and fixture file are None. You have '
+                        'to provide one of these two informatiions.')
     j_fixture = get_player_stats(fixture_id, output_path=stats_path)
 
     players_stats = pd.DataFrame()
