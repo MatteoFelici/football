@@ -161,6 +161,8 @@ def get_fixture_stats(fixture_id: int,
     else:
         r_dict = get_json_response('/'.join([ENDPOINTS['fixture_stats'],
                                              str(fixture_id)]))
+        # Force-append the fixture id
+        r_dict['statistics']['fixture_id'] = fixture_id
         fixture_stats = output_json_response(r_dict, 'statistics', output_file)
 
     return fixture_stats
