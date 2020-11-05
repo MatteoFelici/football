@@ -6,61 +6,99 @@ import pandas as pd
 from utils import safe_num_cast
 
 
+def process_directory(json_path: str,
+                      process_method,
+                      **kwargs) -> pd.DataFrame:
+    """
+    Given a path to a directory with json files, process each file with a given
+    method and store all data into a pandas DataFrame.
+    You can pass additional keyword arguments to process method.
+
+    Parameters
+    ----------
+    json_path: str
+        Path to directory with json files
+    process_method: func
+        Method to process each json read into files
+
+    Returns
+    -------
+    df: pandas.DataFrame
+        Output DataFrame with processed data
+
+    """
+
+    files = os.listdir(json_path)
+    tot_files = len(files)
+
+    # Initialize empty dataframe
+    df = pd.DataFrame()
+
+    # Iterate on each file and append to DataFrame
+    for i, json_file in enumerate(files):
+        print(f'{i + 1} / {tot_files} --- {json_file}')
+        df = df.append(
+            process_file(
+                file_path=os.path.join(json_path, json_file),
+                process_method=process_method,
+                **kwargs
+            )
+        )
+
+    return df
+
+
+def process_file(file_path: str,
+                 process_method,
+                 **kwargs) -> pd.DataFrame:
+    """
+    Given a path to a player statistics file, process statistics data to a
+    pandas DataFrame.
+    You can pass additional keyword arguments to process method.
+
+    Parameters
+    ----------
+    file_path: str
+        Path to a json file
+    process_method: func
+        Method to process json read into file
+
+    Returns
+    -------
+    players_stats: pandas.DataFrame
+        Output DataFrame with processed data
+    """
+
+    # Load data into dict
+    with open(file_path, 'r') as f:
+        json_file = json.load(f)
+
+    # Initialize empty dataframe
+    df = pd.DataFrame()
+
+    # Iterate on each json and append to DataFrame
+    root = json_file.keys()[0]
+    for j_orig in json_file[root]:
+        df = df.append(
+            process_method(j_orig, **kwargs)
+        )
+
+    return df
+
+
 class LeagueData:
     """
     This class encapsulate all the methods to process and analyse league-level
     data
     """
 
-    def __init__(self,
-                 id_features=None,
-                 num_features=None,
-                 cat_features=None,
-                 bool_features=None,
-                 struct_features=None):
-        """
-        Parameters
-        ----------
-        id_features: list
-            List od IDs to retrieve from json.
-            Default is ['league_id', 'fixture_id']
-        num_features: list
-            List of features to retrieve from json.
-            Default is ['rating', 'minutes_played']
-        cat_features: list
-            List of features to retrieve from json.
-            Default is ['player_name', 'team_name', 'position']
-        bool_features: list
-            List of features to retrieve from json.
-            Default is ['captain', 'substitute']
-        struct_features: list
-            List of features to retrieve from json.
-            Default is ['shots', 'goals', 'passes', 'tackles', 'duels', 'dribbles',
-            'fouls', 'cards', 'penalty']
-        """
-
-        if id_features is None:
-            id_features = ['league_id', 'fixture_id']
-        if num_features is None:
-            num_features = ['rating', 'minutes_played']
-        if cat_features is None:
-            cat_features = ['player_name', 'team_name', 'position']
-        if bool_features is None:
-            bool_features = ['captain', 'substitute']
-        if struct_features is None:
-            struct_features = ['shots', 'goals', 'passes', 'tackles',
-                               'duels', 'dribbles', 'fouls', 'cards',
-                               'penalty']
-        self.id_features = id_features
-        self.num_features = num_features
-        self.cat_features = cat_features
-        self.bool_features = bool_features
-        self.struct_features = struct_features
+    def __init__(self):
+        pass
 
     def json_to_pandas_league(self,
                               j_fixture: dict) -> pd.DataFrame:
         """
-        Return a pandas DataFrame row from a fixture info json.
+        Return a pandas DataFrame from a fixture info json.
 
         Parameters
         ----------
@@ -101,9 +139,27 @@ class LeagueData:
 
         return fixture_row
 
+    def process_league(self, league_file: str) -> pd.DataFrame:
+        """
+
+        Parameters
+        ----------
+        league_file: str
+            Path to league file
+
+        Returns
+        -------
+        league_data: pandas.DataFrame
+            DataFrame with all fixtures info in the given file
+        """
+
+        league_data = process_file(file_path=league_file,
+                                   process_method=self.json_to_pandas_league)
+
+        return league_data
+
     def json_to_pandas_fixture_stats(self,
-                                     j_fixture: dict,
-                                     fixture_id: int) -> pd.DataFrame:
+                                     j_fixture: dict) -> pd.DataFrame:
         """
         Return a pandas DataFrame row from a fixture statistics json. The
         structured features are unpacked.
@@ -112,12 +168,10 @@ class LeagueData:
         ----------
         j_fixture: dict
             Input json with fixture statistics
-        fixture_id: int
-            ID of the fixture to use as index for DataFrame
 
         Returns
         -------
-        player_row: pandas DataFrame
+        fixture_row: pandas DataFrame
             Row of a pandas DataFrame with fixture stats data
         """
 
@@ -131,9 +185,30 @@ class LeagueData:
                       safe_num_cast(j_fixture[feat]['away'])
                       for feat in j_fixture})
 
-        player_row = pd.DataFrame(new_j, index=[fixture_id])
+        fixture_row = pd.DataFrame(new_j, index=[j_fixture['fixture_id']])
 
-        return player_row
+        return fixture_row
+
+    def process_fixtures(self, fixtures_path: str) -> pd.DataFrame:
+        """
+
+        Parameters
+        ----------
+        fixtures_path: str
+            Path to directory with fixture statistics files
+
+        Returns
+        -------
+        fixture_data: pandas.DataFrame
+            DataFrame with all fixture statistics on the given directory
+        """
+
+        fixture_data = process_file(
+            file_path=fixtures_path,
+            process_method=self.json_to_pandas_fixture_stats
+        )
+
+        return fixture_data
 
 
 class PlayerData:
@@ -165,8 +240,8 @@ class PlayerData:
             Default is ['captain', 'substitute']
         struct_features: list
             List of features to retrieve from json.
-            Default is ['shots', 'goals', 'passes', 'tackles', 'duels', 'dribbles',
-            'fouls', 'cards', 'penalty']
+            Default is ['shots', 'goals', 'passes', 'tackles', 'duels',
+            'dribbles', 'fouls', 'cards', 'penalty']
         """
 
         if id_features is None:
@@ -230,43 +305,8 @@ class PlayerData:
 
         return player_row
 
-    def process_fixture(self,
-                        fixture_file: str) -> pd.DataFrame:
+    def process_players(self, league_path: str) -> pd.DataFrame:
         """
-        Given a path to a player statistics file, process statistics data to a
-        pandas DataFrame.
-
-        Parameters
-        ----------
-        fixture_file: str
-            Path to a player statistics json file
-
-        Returns
-        -------
-        players_stats: pandas.DataFrame
-            Output DataFrame with processed data
-        """
-
-        # Load data into dict
-        with open(fixture_file, 'r') as f:
-            j_fixture = json.load(f)
-
-        # Initialize empty dataframe
-        players_stats = pd.DataFrame()
-
-        # Iterate on each player and append to DataFrame
-        for j_player in j_fixture['players']:
-            players_stats = players_stats.append(
-                self.json_to_pandas_player(j_player)
-            )
-
-        return players_stats
-
-    def process_league(self,
-                       league_path: str) -> pd.DataFrame:
-        """
-        Given a path to a directory with player statistics files, process
-        each file and store all data into a pandas DataFrame.
 
         Parameters
         ----------
@@ -275,24 +315,13 @@ class PlayerData:
 
         Returns
         -------
-        league_data: pandas.DataFrame
-            Output DataFrame with processed data
-
+        players_data: pandas.DataFrame
+            DataFrame with all players statistics on the given directory
         """
 
-        files = os.listdir(league_path)
-        tot_files = len(files)
+        players_data = process_file(
+            file_path=league_path,
+            process_method=self.json_to_pandas_player
+        )
 
-        # Initialize empty dataframe
-        league_data = pd.DataFrame()
-
-        # Iterate on each fixture and append to DataFrame
-        for i, fixture_file in enumerate(files):
-            print(f'{i + 1} / {tot_files} --- {fixture_file}')
-            league_data = league_data.append(
-                self.process_fixture(
-                    fixture_file=os.path.join(league_path, fixture_file)
-                )
-            )
-
-        return league_data
+        return players_data
