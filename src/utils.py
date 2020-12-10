@@ -12,7 +12,7 @@ def get_key(key_file='~/rapidapi-key.txt'):
 def safe_num_cast(num: str) -> float:
     try:
         # If % is the last chararcter, interpret as percentage
-        if num[-1] == '%':
+        if str(num)[-1] == '%':
             num = np.float(num[:-1]) / 100
         # Otherwise transform into float
         else:

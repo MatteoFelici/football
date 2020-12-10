@@ -77,7 +77,7 @@ def process_file(file_path: str,
     df = pd.DataFrame()
 
     # Iterate on each json and append to DataFrame
-    root = json_file.keys()[0]
+    root = list(json_file)[0]
     for j_orig in json_file[root]:
         df = df.append(
             process_method(j_orig, **kwargs)
@@ -325,3 +325,24 @@ class PlayerData:
         )
 
         return players_data
+
+    def process_league(self, league_path: str) -> pd.DataFrame:
+        """
+
+        Parameters
+        ----------
+        league_path: str
+            Path to league directory with players stats
+
+        Returns
+        -------
+        league_data: pandas.DataFrame
+            DataFrame with all players stats into given directory
+        """
+
+        league_data = process_directory(
+            json_path=league_path,
+            process_method=self.json_to_pandas_player
+        )
+
+        return league_data
