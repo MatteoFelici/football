@@ -93,7 +93,15 @@ class LeagueData:
     """
 
     def __init__(self):
-        pass
+        self.fixture_stats_feat = [
+            'Shots on Goal', 'Shots off Goal', 'Total Shots', 'Blocked Shots',
+            'Shots insidebox', 'Shots outsidebox', 'Fouls', 'Corner Kicks',
+            'Offsides', 'Ball Possession', 'Yellow Cards', 'Red Cards',
+            'Goalkeeper Saves', 'Total passes', 'Passes accurate', 'Passes %'
+        ]
+        self.league_numerical_feat = ['elapsed', 'goalsHomeTeam',
+                                      'goalsAwayTeam']
+        self.league_info_feat = ['name', 'country']
 
     def json_to_pandas_league(self,
                               j_fixture: dict) -> pd.DataFrame:
@@ -112,11 +120,11 @@ class LeagueData:
         """
 
         # Numerical data
-        new_j = {x: j_fixture[x] for x in ['elapsed', 'goalsHomeTeam',
-                                           'goalsAwayTeam']}
+        new_j = {x: j_fixture[x] for x in self.league_numerical_feat}
         # League info
         new_j.update(
-            {'league_' + x: j_fixture['league'][x] for x in ['name', 'country']}
+            {'league_' + x: j_fixture['league'][x]
+             for x in self.league_info_feat}
         )
         # Epoch to datetime
         new_j['fixture_date'] = datetime.datetime.fromtimestamp(
@@ -179,11 +187,11 @@ class LeagueData:
         # First add home data
         new_j = {'.'.join(['home', feat.replace(' ', '_')]):
                  safe_num_cast(j_fixture[feat]['home'])
-                 for feat in j_fixture}
+                 for feat in self.fixture_stats_feat}
         # Then add away data
         new_j.update({'.'.join(['away', feat.replace(' ', '_')]):
                       safe_num_cast(j_fixture[feat]['away'])
-                      for feat in j_fixture})
+                      for feat in self.fixture_stats_feat})
 
         fixture_row = pd.DataFrame(new_j, index=[j_fixture['fixture_id']])
 
@@ -203,10 +211,24 @@ class LeagueData:
             DataFrame with all fixture statistics on the given directory
         """
 
-        fixture_data = process_file(
-            file_path=fixtures_path,
-            process_method=self.json_to_pandas_fixture_stats
-        )
+        files = os.listdir(fixtures_path)
+        tot_files = len(files)
+
+        # Initialize empty dataframe
+        fixture_data = pd.DataFrame()
+
+        # Iterate on each file and append to DataFrame
+        for i, json_file_path in enumerate(files):
+            print(f'{i + 1} / {tot_files} --- {json_file_path}')
+
+            with open(os.path.join(fixtures_path, json_file_path), 'r') as f:
+                json_file = json.load(f)
+
+            fixture_data = fixture_data.append(
+                self.json_to_pandas_fixture_stats(
+                    j_fixture=json_file['statistics']
+                )
+            )
 
         return fixture_data
 
@@ -305,12 +327,12 @@ class PlayerData:
 
         return player_row
 
-    def process_players(self, league_path: str) -> pd.DataFrame:
+    def process_fixture(self, fixture_path: str) -> pd.DataFrame:
         """
 
         Parameters
         ----------
-        league_path: str
+        fixture_path: str
             Path to directory with player statistics files
 
         Returns
@@ -320,7 +342,7 @@ class PlayerData:
         """
 
         players_data = process_file(
-            file_path=league_path,
+            file_path=fixture_path,
             process_method=self.json_to_pandas_player
         )
 
