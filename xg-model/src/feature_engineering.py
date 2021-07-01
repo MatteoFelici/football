@@ -50,8 +50,8 @@ class XGFeatEng(BaseEstimator, TransformerMixin):
         """
 
         angle = np.arctan(
-            self.goal_dim * (self.pitch_dim[0] - x) /
-            ((self.pitch_dim[0] - x) ** 2 + y ** 2 - (self.goal_dim / 2) ** 2)
+            self.goal_dim * x /
+            (x ** 2 + y ** 2 - (self.goal_dim / 2) ** 2)
         )
         # If negative, add pi
         angle[angle < 0] += np.pi
@@ -76,9 +76,9 @@ class XGFeatEng(BaseEstimator, TransformerMixin):
             if isInside(
                 x_shot, y_shot,
                 # Left goal post
-                self.pitch_dim[0], (self.pitch_dim[1] - self.goal_dim / 2),
+                self.pitch_dim[0], ((self.pitch_dim[1] - self.goal_dim) / 2),
                 # Right goal post
-                self.pitch_dim[0], (self.pitch_dim[1] + self.goal_dim / 2),
+                self.pitch_dim[0], ((self.pitch_dim[1] + self.goal_dim) / 2),
                 self._normalize_x(player['location'][0]),
                 self._normalize_y(player['location'][1])
             ) == 1
