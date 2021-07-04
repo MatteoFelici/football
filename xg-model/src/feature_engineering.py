@@ -49,9 +49,10 @@ class XGFeatEng(BaseEstimator, TransformerMixin):
         Calculate shot angle
         """
 
+        # x coordinate is translated into pitch_dimesnion - x
         angle = np.arctan(
-            self.goal_dim * x /
-            (x ** 2 + y ** 2 - (self.goal_dim / 2) ** 2)
+            self.goal_dim * (self.pitch_dim[0] - x) /
+            ((self.pitch_dim[0] - x) ** 2 + y ** 2 - (self.goal_dim / 2) ** 2)
         )
         # If negative, add pi
         angle[angle < 0] += np.pi
